@@ -46,6 +46,15 @@ pip install -r requirements.txt
 ```
 
 ### Step 4: Run Audits (Run karein)
+
+#### 🎮 Interactive TUI Menu Mode (Recommended)
+Run the script without any options to launch the interactive TUI menu. You can perform all operations (forensics, OSINT, secure shredding, crypto audits) by entering options `1-9`:
+```bash
+python aegiseye.py
+```
+
+#### 💻 Direct Command-Line CLI Mode
+You can also run specific modules directly using subcommand arguments:
 ```bash
 # General Help menu
 python aegiseye.py --help
