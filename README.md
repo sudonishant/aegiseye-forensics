@@ -68,6 +68,40 @@ python aegiseye.py shred secret.txt --passes 5
 
 ---
 
+## 🔌 Model Context Protocol (MCP) Server Integration
+AegisEye is fully integrated as a Custom MCP Server, satisfying the **Find Evil! Hackathon** Approach 2 architecture. This allows autonomous incident response agents (like Claude Code, OpenClaw, or Cursor) to call AegisEye tools natively over stdio.
+
+### Exposed MCP Tools
+1. `analyze_image(image_path)`: Scans an image for EXIF/GPS, runs ELA pixel-tamper checks, splits RGB channels, and returns a compiled HTML report path.
+2. `check_email_osint(email)`: OSINT validator checking domain syntax and active mail server MX records.
+3. `check_phone_osint(phone)`: OSINT auditor for carrier information, timezone, and geolocation country mapping.
+4. `audit_domain_network(domain, check_whois)`: Network audit engine checking active DNS, WHOIS registration, and SSL/TLS certificate health status.
+5. `crypto_hash_analysis(hash_string, password)`: Identifies cryptographic hash algorithm types or evaluates password strength entropy.
+
+### Running AegisEye as an MCP Server
+To configure and run the MCP server with an agentic client (e.g. `claude.json` or Cline configuration):
+```json
+{
+  "mcpServers": {
+    "aegiseye-forensics": {
+      "command": "python3",
+      "args": ["/absolute/path/to/aegiseye-forensics/aegiseye_mcp.py"]
+    }
+  }
+}
+```
+
+### Verification Against Evidence
+We have pre-packaged a forensic test dataset in the `evidence/` directory:
+- `evidence/clean_evidence.jpg`: Clean system configuration screenshot.
+- `evidence/tampered_evidence.jpg`: Manipulated system configuration screenshot.
+
+You can verify the agent's behavior by instructing the agent:
+> *"Analyze /absolute/path/to/aegiseye-forensics/evidence/tampered_evidence.jpg for visual modifications and report the findings."*
+The agent will call `analyze_image` through the MCP protocol, read the ELA heatmap results, detect the pixel manipulation anomalies, and report them autonomously.
+
+---
+
 ## 📖 Complete Setup & Troubleshooting Guide
 For advanced debugging (e.g. fixing PIL/Pillow compiler issues or setting up coordinates maps), read the [SETUP_GUIDE.md](./SETUP_GUIDE.md).
 
@@ -75,3 +109,4 @@ For advanced debugging (e.g. fixing PIL/Pillow compiler issues or setting up coo
 
 ## 📄 License
 Distributed under the MIT License.
+
