@@ -25,7 +25,6 @@ class NumberedCanvas(canvas.Canvas):
 
     def draw_page_number(self, page_count):
         if self._pageNumber == 1:
-            # Skip page numbering on cover page
             return
         self.saveState()
         self.setFont("Helvetica", 9)
@@ -46,7 +45,7 @@ class NumberedCanvas(canvas.Canvas):
 
 def build_pdf():
     pdf_path = "/home/nishant/Desktop/antigravity/iit/aegiseye-forensics/aegiseye_guide.pdf"
-    image_path = "/home/nishant/Desktop/antigravity/iit/aegiseye-forensics/assets/aegiseye_dashboard.png"
+    assets_dir = "/home/nishant/Desktop/antigravity/iit/aegiseye-forensics/assets"
 
     # Setup document
     doc = SimpleDocTemplate(
@@ -95,11 +94,11 @@ def build_pdf():
         'Heading1_Custom',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
-        fontSize=18,
-        leading=22,
+        fontSize=16,
+        leading=20,
         textColor=colors.HexColor("#1e1b4b"),
-        spaceBefore=18,
-        spaceAfter=10,
+        spaceBefore=14,
+        spaceAfter=8,
         keepWithNext=True
     )
 
@@ -110,8 +109,8 @@ def build_pdf():
         fontSize=12,
         leading=16,
         textColor=colors.HexColor("#4c1d95"),
-        spaceBefore=12,
-        spaceAfter=6,
+        spaceBefore=10,
+        spaceAfter=4,
         keepWithNext=True
     )
 
@@ -200,10 +199,9 @@ def build_pdf():
         "The server listens on <i>stdin</i> for RPC commands, processes requests, and outputs single-line JSON responses to <i>stdout</i>. Debugging traces are directed exclusively to <i>stderr</i> to prevent polluting the MCP data stream.",
         body_style
     ))
-    
     story.append(PageBreak())
 
-    # ================= PAGE 3: USE CASES & INTERACTIVE FLOW =================
+    # ================= PAGE 3: USE CASES & CONFIGURATION =================
     story.append(Spacer(1, 20))
     story.append(Paragraph("2. Primary Use Cases & Deployment", h1_style))
     story.append(Paragraph(
@@ -240,48 +238,82 @@ def build_pdf():
     story.append(Paragraph(mcp_config_text.replace("\n", "<br/>").replace(" ", "&nbsp;"), code_style))
     story.append(PageBreak())
 
-    # ================= PAGE 4: FUTURE ROADMAP =================
-    story.append(Spacer(1, 20))
-    story.append(Paragraph("3. Future Upgrades & Roadmap", h1_style))
+    # ================= PAGE 4: INTERACTIVE TUI & PHONE OSINT =================
+    story.append(Spacer(1, 10))
+    story.append(Paragraph("3. Interactive TUI Menu & Phone OSINT", h1_style))
     story.append(Paragraph(
-        "To scale AegisEye to an enterprise-grade autonomous security defender, we have planned a three-tier roadmap:",
+        "The toolkit provides an interactive terminal user interface (TUI) allowing manual operation of all modules. The CLI dynamically prompts the user for arguments and handles errors gracefully.",
         body_style
     ))
+    
+    img1 = os.path.join(assets_dir, "01_tui_menu.png")
+    if os.path.exists(img1):
+        story.append(Image(img1, width=380, height=213))
+        story.append(Paragraph("<i>Figure 1: Interactive TUI Menu Mode prompting selection (Options 1-9).</i>", bullet_style))
+    
+    img2 = os.path.join(assets_dir, "02_phone_osint.png")
+    if os.path.exists(img2):
+        story.append(Spacer(1, 10))
+        story.append(Image(img2, width=380, height=213))
+        story.append(Paragraph("<i>Figure 2: Phone OSINT Module querying telephone carrier info.</i>", bullet_style))
+        
+    story.append(PageBreak())
 
-    story.append(Paragraph("1. Neural ELA Classification Models", h2_style))
+    # ================= PAGE 5: DNS, SSL & WHOIS RECON =================
+    story.append(Spacer(1, 10))
+    story.append(Paragraph("4. Domain Security Recon: DNS, SSL & WHOIS Audits", h1_style))
     story.append(Paragraph(
-        "Integrate local, lightweight PyTorch convolutional neural networks (CNNs) directly into the image analysis pipeline. This will allow the agent to classify whether ELA heatmaps show genuine modifications vs. normal JPEG artifacts, reducing false positives to under 1%.",
+        "AegisEye network module audits target domains using raw socket connections. It validates Let's Encrypt certificate validity timescales, grabs active records (A, MX, TXT SPF, NS), and executes direct port 43 WHOIS registry queries.",
         body_style
     ))
+    
+    img3 = os.path.join(assets_dir, "03_dns_ssl_recon.png")
+    if os.path.exists(img3):
+        story.append(Image(img3, width=380, height=213))
+        story.append(Paragraph("<i>Figure 3: Active DNS Records list and SSL certificate health check summary.</i>", bullet_style))
+        
+    img4 = os.path.join(assets_dir, "04_whois_recon.png")
+    if os.path.exists(img4):
+        story.append(Spacer(1, 10))
+        story.append(Image(img4, width=380, height=213))
+        story.append(Paragraph("<i>Figure 4: WHOIS port 43 raw registration telemetry output.</i>", bullet_style))
+        
+    story.append(PageBreak())
 
-    story.append(Paragraph("2. MFT & Registry Timelining tools", h2_style))
+    # ================= PAGE 6: DIGITAL IMAGE FORENSICS =================
+    story.append(Spacer(1, 10))
+    story.append(Paragraph("5. Digital Image Forensics & Tamper Check", h1_style))
     story.append(Paragraph(
-        "Expose direct MCP tools to read the Master File Table (MFT) and Windows Registry hives from disk images, allowing the agent to reconstruct a chronological system timeline of file activity around an intrusion timestamp.",
+        "AegisEye scans target images by isolating EXIF coordinates and generating high-resolution ELA (Error Level Analysis) heatmaps to expose modified pixel regions.",
         body_style
     ))
+    
+    img5 = os.path.join(assets_dir, "05_image_forensics.png")
+    if os.path.exists(img5):
+        story.append(Image(img5, width=420, height=236))
+        story.append(Paragraph("<i>Figure 5: ELA and Stego scan execution logs with HTML report output.</i>", bullet_style))
 
-    story.append(Paragraph("3. Secure Docker Execution Sandboxing", h2_style))
+    story.append(Spacer(1, 10))
+    story.append(Paragraph("Future Neural ELA Upgrades:", h2_style))
     story.append(Paragraph(
-        "Add a containerized layer where any file analysis or potential stego payload extraction is performed inside an ephemeral, network-isolated Docker sandbox to protect the host SIFT Workstation from zero-day exploits.",
+        "Future roadmaps incorporate localized PyTorch CNN classification modules that automatically distinguish between standard compression noise artifacts and malicious pixel manipulation, reducing triage false positives.",
         body_style
     ))
     story.append(PageBreak())
 
-    # ================= PAGE 5: DASHBOARD SHOWCASE =================
-    story.append(Spacer(1, 20))
-    story.append(Paragraph("4. AegisEye Forensic Dashboard Mockup", h1_style))
+    # ================= PAGE 7: DASHBOARD SHOWCASE =================
+    story.append(Spacer(1, 10))
+    story.append(Paragraph("6. AegisEye Forensic Control Panel Mockup", h1_style))
     story.append(Paragraph(
-        "Below is the premium, glassmorphic UI design mockup of the AegisEye dashboard showing ELA analytics, active log streams, EXIF coordinates, and secure file shredding modules:",
+        "For enterprise deployments, the analytics generated by the MCP server tools map directly to a modern, glassmorphic cybersecurity desk showing telemetry parameters, active log streams, and system indicators:",
         body_style
     ))
     
-    if os.path.exists(image_path):
+    img_dash = os.path.join(assets_dir, "aegiseye_dashboard.png")
+    if os.path.exists(img_dash):
         story.append(Spacer(1, 10))
-        # Letter width is 612pt, margins are 54pt each. Content width = 504pt
-        # Image is square, scale to fit content width
-        story.append(Image(image_path, width=400, height=400))
-    else:
-        story.append(Paragraph("[Error: Mockup image assets/aegiseye_dashboard.png not found]", h2_style))
+        story.append(Image(img_dash, width=380, height=380))
+        story.append(Paragraph("<i>Figure 6: Glassmorphic Forensic Auditor Dashboard UI mockup.</i>", bullet_style))
 
     # Build Document
     doc.build(story, canvasmaker=NumberedCanvas)
