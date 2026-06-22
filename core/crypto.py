@@ -25,17 +25,23 @@ class CryptoToolbox:
             elif length == 40:
                 return ["SHA-1", "MySQL5"]
             elif length == 56:
-                return ["SHA-224"]
+                return ["SHA-224", "SHA3-224"]
             elif length == 64:
-                return ["SHA-256", "DNSTXT"]
+                return ["SHA-256", "SHA3-256", "DNSTXT"]
             elif length == 96:
-                return ["SHA-384"]
+                return ["SHA-384", "SHA3-384"]
             elif length == 128:
-                return ["SHA-512", "Whirlpool"]
+                return ["SHA-512", "SHA3-512", "Whirlpool"]
         
         if hash_str.startswith(("$2a$", "$2b$", "$2y$")) and length == 60:
             return ["Bcrypt (Blowfish)"]
         
+        if hash_str.startswith("$argon2id$") or hash_str.startswith("$argon2i$"):
+            return ["Argon2 (Key Derivation Function)"]
+
+        if hash_str.startswith("$scrypt$"):
+            return ["Scrypt (Key Derivation Function)"]
+
         if hash_str.startswith("$pbkdf2-sha256$") or hash_str.startswith("$pbkdf2$"):
             return ["PBKDF2-SHA256"]
             

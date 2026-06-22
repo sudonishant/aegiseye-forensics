@@ -76,7 +76,7 @@ AegisEye is fully integrated as a Custom MCP Server, satisfying the **Find Evil!
 2. `check_email_osint(email)`: OSINT validator checking domain syntax and active mail server MX records.
 3. `check_phone_osint(phone)`: OSINT auditor for carrier information, timezone, and geolocation country mapping.
 4. `audit_domain_network(domain, check_whois)`: Network audit engine checking active DNS, WHOIS registration, and SSL/TLS certificate health status.
-5. `crypto_hash_analysis(hash_string, password)`: Identifies cryptographic hash algorithm types or evaluates password strength entropy.
+5. `crypto_hash_analysis(hash_string, password)`: Identifies cryptographic hash algorithm types (including MD5, SHA-1, SHA-2, SHA-3, Bcrypt, Argon2, Scrypt) or evaluates password strength entropy.
 
 ### Running AegisEye as an MCP Server
 To configure and run the MCP server with an agentic client (e.g. `claude.json` or Cline configuration):
