@@ -102,6 +102,15 @@ The agent will call `analyze_image` through the MCP protocol, read the ELA heatm
 
 ---
 
+## ⚖️ Forensic Data Integrity & Triage Warning
+
+AegisEye is designed to audit and triage systems during security incidents. To preserve evidence integrity:
+1. **Strictly Read-Only Analysis**: The image ELA, EXIF parser, and certificate audits do not write to or alter the target files. 
+2. **DoD-Standard Shredding**: The file shredder module uses multiple overwrite passes to erase files permanently. *Caution: Wiped files cannot be recovered by standard forensic tools. Use shred commands only when permanent disposal is explicitly intended.*
+3. **Execution Sandbox**: When integrating with agentic incident response frameworks (e.g. Claude Code or OpenClaw), configure local execution block policies to verify destructive actions.
+
+---
+
 ## 📖 Complete Setup & Troubleshooting Guide
 For advanced debugging (e.g. fixing PIL/Pillow compiler issues or setting up coordinates maps), read the [SETUP_GUIDE.md](./SETUP_GUIDE.md).
 
