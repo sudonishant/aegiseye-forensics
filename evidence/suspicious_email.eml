@@ -1,0 +1,23 @@
+From: Finance Team <billing@trusted.example>
+Reply-To: payout@xn--paypa1-9za.example
+Return-Path: <mailer@relay.example>
+To: analyst@example.org
+Subject: URGENT action required: verify payment account
+Date: Wed, 20 Aug 2026 10:20:00 +0000
+Message-ID: <abc123@relay.example>
+Received: from edge.example (203.0.113.10) by mx.example.org;
+Received: from suspicious.example (198.51.100.22) by edge.example;
+Authentication-Results: mx.example.org; spf=fail smtp.mailfrom=relay.example; dkim=fail header.d=trusted.example; dmarc=fail header.from=trusted.example
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="demo"
+
+--demo
+Content-Type: text/plain; charset="utf-8"
+
+Please verify your account immediately at https://bit.ly/urgent-check and confirm payment.
+--demo
+Content-Type: application/octet-stream
+Content-Disposition: attachment; filename="invoice.xlsm"
+
+fake attachment bytes
+--demo--

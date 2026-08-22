@@ -16,6 +16,8 @@ from core.osint import OSINTAnalyzer
 from core.network import NetworkAuditor
 from core.crypto import CryptoToolbox
 from core.reporter import ForensicReporter
+from core.email_threat import EmailThreatAnalyzer
+from core.email_reporter import EmailThreatReporter
 
 def log(msg):
     sys.stderr.write(f"[AegisEye-MCP] {msg}\n")
@@ -78,6 +80,33 @@ def tool_analyze_image(arguments):
         log(f"Error in analyze_image: {traceback.format_exc()}")
         return {"error": str(e)}
 
+def tool_analyze_email_threat(arguments):
+    """Run read-only email threat triage from raw content or an .eml path."""
+    email_path = arguments.get("email_path")
+    raw_email = arguments.get("raw_email")
+    source_name = arguments.get("source_name", "raw_message.eml")
+    report_path = arguments.get("report_path")
+
+    if not email_path and not raw_email:
+        return {"error": "Provide either email_path or raw_email"}
+
+    try:
+        if email_path:
+            if not os.path.exists(email_path):
+                return {"error": f"Email path '{email_path}' does not exist"}
+            analyzer = EmailThreatAnalyzer.from_path(email_path)
+            source_name = email_path
+        else:
+            analyzer = EmailThreatAnalyzer(raw_email, source_name=source_name)
+        results = analyzer.analyze()
+        if report_path:
+            results["report_path"] = EmailThreatReporter(source_name).generate(results, output_path=report_path)
+        return results
+    except Exception as e:
+        log(f"Error in analyze_email_threat: {traceback.format_exc()}")
+        return {"error": str(e)}
+
+
 def tool_check_email_osint(arguments):
     email = arguments.get("email")
     if not email:
@@ -105,10 +134,11 @@ def tool_audit_domain_network(arguments):
     try:
         auditor = NetworkAuditor(domain)
         ssl_res = auditor.audit_ssl()
-        dns_res = auditor.audit_dns()
+        dns_res = auditor.get_dns_records()
+
         whois_res = {}
         if arguments.get("check_whois", False):
-            whois_res = auditor.audit_whois()
+            whois_res = {"raw": auditor.get_whois()}
         
         return {
             "ssl_audit": ssl_res,
@@ -145,6 +175,23 @@ TOOLS = {
           "required": ["image_path"]
         },
         "handler": tool_analyze_image
+    },
+    "analyze_email_threat": {
+        "description": "Perform read-only email threat triage: parse message identity, authentication results, URLs, attachments, Received relay paths, origin candidates, explainable risk findings, and evidence hash.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "email_path": { "type": "string", "description": "Absolute path to a raw RFC 5322 .eml file." },
+            "raw_email": { "type": "string", "description": "Raw RFC 5322 email content. Do not include unrelated secrets." },
+            "source_name": { "type": "string", "description": "Display name for raw email evidence." },
+            "report_path": { "type": "string", "description": "Optional path for an HTML forensic report." }
+          },
+          "anyOf": [
+            {"required": ["email_path"]},
+            {"required": ["raw_email"]}
+          ]
+        },
+        "handler": tool_analyze_email_threat
     },
     "check_email_osint": {
         "description": "Perform OSINT domain verification, checking MX mail server records and domain syntax viability.",

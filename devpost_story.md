@@ -1,38 +1,38 @@
-# Project Story: AegisEye (Custom MCP Server for OSINT & Digital Forensics)
+# Project Story: AegisEye Forensics — Email Threat Detection & Forensic Intelligence
 
 ## About the Project
-AegisEye is a premium, autonomous digital forensics and OSINT agent extension built for the SANS **"Find Evil!" Hackathon 2026**. It connects autonomous incident response agents (like Claude Code, OpenClaw, or Cursor) to specialized forensic analysis tools via a custom Model Context Protocol (MCP) server, allowing automated compromise triage at machine speed.
+AegisEye Forensics is a modular Python toolkit and MCP-compatible analysis service designed to help security teams move from **suspicious email to explainable evidence**. For the SIH 2026 email-threat problem, the platform adds read-only email-header triage to the existing image, OSINT, network, cryptographic, and evidence-handling modules.
+
+The proposed workflow ingests a raw RFC 5322 email, preserves an SHA-256 evidence hash, validates visible sender and reply paths, evaluates SPF/DKIM/DMARC results, reconstructs the available `Received` relay chain, extracts URLs and attachments, and generates explainable risk findings with recommended analyst actions. Origin IPs are reported as candidates for approved intelligence enrichment; the platform does not claim geolocation or attribution from a single signal.
 
 ---
 
-## 💡 What Inspired Us
-In modern cybersecurity, the speed gap is the most dangerous variable. While offensive AI agents can escalate privileges and gain full domain control in under 60 seconds, human incident responders are often left manually typing command flags or context-switching between EXIF extractors, SSL checkers, and hex editors. 
+## What Inspired Us
+Email remains a high-value attack surface because a convincing message can combine identity deception, urgent social-engineering language, malicious links, suspicious attachments, and compromised relay infrastructure. Existing filters often stop at “spam” or “not spam,” while investigators need the technical trail behind that decision.
 
-We were inspired to build a unified forensic cockpit that empowers defensive AI agents with structured, read-only analysis tools. By bridging the SANS SIFT Workstation's capabilities with LLM agentic loops using MCP, we wanted to create an autonomous responder that can triage anomalies, detect pixel-level image tampering, and analyze cryptographic strengths in seconds instead of hours.
-
----
-
-## 🛠️ How We Built It
-AegisEye is built as a modular, full-stack forensic suite:
-* **The Forensics Core (Python)**: Utilizes native Python libraries along with `Pillow` and `rich` to run EXIF metadata parsing, RGB channel splitting, steganographic binary scanning, and active WHOIS/DNS/SSL network sockets.
-* **The Error Level Analysis (ELA) Engine**: Programmatically resaves images at a specific JPEG quality and calculates the absolute difference against the original canvas. This difference is dynamically enhanced to make pixel-level edits visible.
-* **The Custom MCP Server**: Built a lightweight, stdio-based JSON-RPC 2.0 protocol handler that translates LLM queries into type-safe Python function calls (like `analyze_image` or `audit_domain_network`) without requiring external library dependencies.
-
-We model the cracking complexity and entropy strength of audited passwords mathematically. The Shannon Entropy \\( E \\) is computed using:
-$$ E = L \times \log_2(R) $$
-where \\( L \\) is the character length of the password and \\( R \\) is the size of the character pool (e.g., lowercases, uppercases, numbers, and special characters). 
-
-We also calculate the dynamic enhancement factor for ELA heatmaps:
-$$ \text{Scale Factor} = \min\left( \frac{255}{D_{\text{max}}}, S_{\text{default}} \right) $$
-where \\( D_{\text{max}} \\) represents the maximum absolute difference between compressed and original pixels, and \\( S_{\text{default}} \\) is the configurable scale cap to prevent background noise amplification.
+We wanted to build a unified forensic cockpit that helps analysts answer three questions quickly: **Is this message suspicious? How did it travel? What evidence should guide the next action?**
 
 ---
 
-## 🛑 Challenges We Faced
-1. **The Spoliation Risk (Evidence Integrity)**: In digital forensics, preserving the original state of evidence is paramount. If an AI agent runs arbitrary shell commands, a single hallucinated `rm` or `>` can overwrite a critical disk or memory capture. We solved this by enforcing a strictly **read-only Custom MCP Server** (Approach 2). The agent only has access to analysis endpoints and cannot execute arbitrary shell instructions.
-2. **Context Window Overload**: Raw forensic tool outputs are massive. Dumping a full EXIF tree or binary hex stream into an LLM context instantly degrades reasoning capability. We resolved this by building a **Response Compiler** inside our MCP server that parses raw data into concise, structured JSON payloads, giving the model high-fidelity telemetry without context bloat.
+## How We Built It
+AegisEye is built as a modular, dependency-light Python suite:
+
+- **Email threat core:** standard-library parsing of RFC 5322 messages, sender identity, Reply-To and Return-Path mismatches, authentication results, `Received` headers, relay IP candidates, URL and attachment indicators, urgency cues, explainable risk scoring, and SHA-256 evidence hashing.
+- **Forensic reporting:** a dedicated HTML report preserves the analysis context, finding details, recommended actions, relay evidence, and chain-of-custody note without modifying the original message.
+- **Existing forensic modules:** Pillow-based image analysis with EXIF/GPS, ELA, steganography and channel checks; phone/email OSINT; DNS/WHOIS/SSL network audits; cryptographic checks; and a controlled file shredder.
+- **MCP integration:** a lightweight stdio JSON-RPC server exposes structured tools for email triage, image analysis, OSINT, network audits, and crypto checks so agentic clients can call focused operations rather than execute arbitrary shell commands.
+
+The first email-threat implementation is intentionally conservative. Live geolocation, reputation feeds, domain-age intelligence, and graph storage are extension points for approved providers and institutional deployment. Every enrichment result should be preserved with its source and timestamp.
 
 ---
 
-## 🎓 What We Learned
-Building AegisEye proved that Model Context Protocol (MCP) is the future of automated defense operations. By wrapping standard command-line tools into type-safe, structured functions, we can eliminate model hallucinations and create an execution log trail that human analysts can easily audit. We also learned that splitting analysis into specialized, focused tools is far more accurate than relying on a single general-purpose agent to navigate raw terminals.
+## Challenges and Risk Controls
+1. **False positives and spoofed identities:** The analyzer combines multiple independent signals and returns explainable findings instead of relying on a single keyword or IP.
+2. **Evidence integrity:** The email path is read-only, records a raw-input SHA-256 hash, and keeps chain-of-custody guidance beside the report.
+3. **Privacy and attribution risk:** The local analyzer does not transmit message content or claim a sender’s location. Approved enrichment should be opt-in, masked where possible, retained under policy, and shown with confidence.
+4. **Format diversity:** The parser preserves the raw `Received` headers and reports when no reliable IPv4 candidate can be extracted, allowing gateway logs or a future IPv6-aware enrichment module to fill the gap.
+
+---
+
+## What We Learned
+A useful cybersecurity tool must not only detect risk; it must make the reasoning inspectable. By returning structured findings, origin candidates, recommendations, and evidence hashes, AegisEye gives analysts a repeatable starting point for triage while leaving high-impact attribution decisions to corroborated intelligence and human review.

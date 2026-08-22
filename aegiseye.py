@@ -3,6 +3,7 @@ import sys
 import os
 import argparse
 import hashlib
+import json
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
@@ -18,6 +19,8 @@ from core.shred import FileShredder
 from core.network import NetworkAuditor
 from core.crypto import CryptoToolbox
 from core.reporter import ForensicReporter
+from core.email_threat import EmailThreatAnalyzer
+from core.email_reporter import EmailThreatReporter
 
 # Initialize Rich Console
 console = Console()
@@ -165,6 +168,64 @@ def run_email_osint(email_addr):
                 mx_table.add_row(str(s["priority"]), s["server"])
             console.print(mx_table)
 
+def run_email_threat(email_path, json_output=False, report_path=None):
+    """Run read-only email threat triage and expose forensic indicators."""
+    if not os.path.exists(email_path):
+        console.print(f"[bold red]Error:[/bold red] File '{email_path}' not found.")
+        return
+
+    try:
+        analyzer = EmailThreatAnalyzer.from_path(email_path)
+        results = analyzer.analyze()
+    except Exception as e:
+        console.print(f"[bold red]Email analysis failed:[/bold red] {str(e)}")
+        return
+
+    if report_path is None:
+        report_path = os.path.splitext(email_path)[0] + "_aegiseye_email_report.html"
+    try:
+        generated_report = EmailThreatReporter(email_path).generate(results, output_path=report_path)
+        results["report_path"] = generated_report
+    except Exception as e:
+        console.print(f"[yellow]Warning:[/yellow] Could not generate HTML report: {str(e)}")
+
+    if json_output:
+        print(json.dumps(results))
+        return
+
+    risk = results["risk"]
+    risk_style = {"high": "bold red", "medium": "bold yellow", "low": "bold green"}.get(risk["level"], "bold white")
+    console.print(Panel(
+        f"[bold]Subject:[/bold] {results['message']['subject'] or '(no subject)'}\n"
+        f"[bold]From:[/bold] {results['message']['from'] or '(unknown)'}\n"
+        f"[bold]Origin candidate:[/bold] {results['relay']['earliest_reliable_ip'] or 'Unavailable'}\n"
+        f"[bold]Evidence SHA-256:[/bold] {results['evidence']['raw_email_sha256']}\n"
+        f"[bold]HTML report:[/bold] {results.get('report_path', 'not generated')}",
+        title="AegisEye Email Threat Triage",
+        border_style="purple",
+    ))
+    console.print(f"[bold]Risk:[/bold] [{risk_style}]{risk['level'].upper()} ({risk['score']}/100)[/{risk_style}] — {risk['summary']}")
+
+    table = Table(title="Explainable Findings", border_style="cyan")
+    table.add_column("Severity", justify="center")
+    table.add_column("Finding")
+    table.add_column("Action")
+    for finding in results["findings"]:
+        severity = finding["severity"]
+        style = {"high": "red", "medium": "yellow", "low": "green"}.get(severity, "white")
+        table.add_row(f"[{style}]{severity.upper()}[/{style}]", finding["title"], finding["recommendation"])
+    if results["findings"]:
+        console.print(table)
+    else:
+        console.print("[green]No explainable risk indicators were found by the local triage rules.[/green]")
+
+    console.print(
+        f"[bold]Relay hops:[/bold] {results['relay']['received_header_count']}  "
+        f"[bold]URLs:[/bold] {len(results['indicators']['urls'])}  "
+        f"[bold]Attachments:[/bold] {len(results['indicators']['attachments'])}"
+    )
+
+
 def run_file_shred(file_path, passes=3):
     if not os.path.exists(file_path):
         console.print(f"[bold red]Error:[/bold red] File '{file_path}' not found.")
@@ -287,6 +348,7 @@ def launch_interactive_menu():
         menu_table.add_row("1", "🔍 Image Forensics (ELA Heatmap, EXIF, Steganography)")
         menu_table.add_row("2", "📞 Phone OSINT (Carrier, Country, Timezone)")
         menu_table.add_row("3", "✉️ Email OSINT (MX Record DNS Checker)")
+        menu_table.add_row("10", "🛡️ Email Threat Triage (Headers, Links, Auth, Relay Path)")
         menu_table.add_row("4", "🗑️ Forensic File Shredder (DoD 5220.22-M Secure Wipe)")
         menu_table.add_row("5", "🌐 Domain Audit & SSL certificate Recon")
         menu_table.add_row("6", "🔑 Password Strength & Entropy Auditor")
@@ -296,7 +358,7 @@ def launch_interactive_menu():
         
         console.print(Panel(menu_table, border_style="purple"))
         
-        choice = console.input("[bold yellow]Enter your choice (1-9): [/bold yellow]").strip()
+        choice = console.input("[bold yellow]Enter your choice (1-10): [/bold yellow]").strip()
         
         if choice == "1":
             path = console.input("\n[bold cyan]Enter path to image file: [/bold cyan]").strip()
@@ -307,6 +369,9 @@ def launch_interactive_menu():
         elif choice == "3":
             email = console.input("\n[bold cyan]Enter email address: [/bold cyan]").strip()
             run_email_osint(email)
+        elif choice == "10":
+            path = console.input("\n[bold cyan]Enter path to raw .eml file: [/bold cyan]").strip()
+            run_email_threat(path)
         elif choice == "4":
             path = console.input("\n[bold red]Enter path of file to shred: [/bold red]").strip()
             run_file_shred(path)
@@ -336,7 +401,7 @@ def launch_interactive_menu():
             console.print("\n[bold green]Exiting AegisEye Toolkit. Stay Secure![/bold green]")
             sys.exit(0)
         else:
-            console.print("[bold red]Invalid option. Please choose between 1 and 9.[/bold red]")
+            console.print("[bold red]Invalid option. Please choose between 1 and 10.[/bold red]")
             
         console.input("\n[dim]Press Enter to return to menu...[/dim]")
 
@@ -347,8 +412,6 @@ def main():
         sys.exit(0)
 
     # Otherwise, handle normal argparse subcommands
-    console.print(BANNER)
-    
     parser = argparse.ArgumentParser(description="AegisEye - Advanced OSINT & Digital Forensics Toolkit")
     subparsers = parser.add_subparsers(dest="command", help="Auditing commands")
     
@@ -361,7 +424,13 @@ def main():
     parser_osint.add_argument("-p", "--phone", help="Phone number to check (with country code, e.g. +91XXXXXXXXXX)")
     parser_osint.add_argument("-e", "--email", help="Email address to validate")
     
-    # Subcommand 3: Secure Shredder
+    # Subcommand 3: Email threat triage
+    parser_email = subparsers.add_parser("email", help="Analyze a raw .eml for threat indicators and relay evidence")
+    parser_email.add_argument("path", help="Path to the raw RFC 5322 email file")
+    parser_email.add_argument("--json", action="store_true", help="Print the complete structured analysis as JSON")
+    parser_email.add_argument("--report", help="Write the HTML forensic report to this path")
+
+    # Subcommand 4: Secure Shredder
     parser_shred = subparsers.add_parser("shred", help="Securely shred a file using DoD 5220.22-M standards")
     parser_shred.add_argument("path", help="Path to the file to be wiped")
     parser_shred.add_argument("--passes", type=int, default=3, help="Number of overwrite passes (default: 3)")
@@ -381,6 +450,8 @@ def main():
     parser_cry.add_argument("--hex-decode", help="Decode Hex text")
 
     args = parser.parse_args()
+    if not (args.command == "email" and args.json):
+        console.print(BANNER)
     
     if args.command == "image":
         run_image_forensics(args.path)
@@ -389,6 +460,8 @@ def main():
             run_phone_osint(args.phone)
         elif args.email:
             run_email_osint(args.email)
+    elif args.command == "email":
+        run_email_threat(args.path, json_output=args.json, report_path=args.report)
     elif args.command == "shred":
         run_file_shred(args.path, passes=args.passes)
     elif args.command == "domain":
