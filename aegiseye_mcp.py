@@ -296,7 +296,7 @@ def main():
                 tool_name = params.get("name")
                 arguments = params.get("arguments", {})
                 
-                log(f"Calling tool: {tool_name} with args {arguments}")
+                log(f"Calling tool: {tool_name}")
                 if tool_name in TOOLS:
                     try:
                         result = TOOLS[tool_name]["handler"](arguments)
