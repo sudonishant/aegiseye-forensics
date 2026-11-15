@@ -237,7 +237,7 @@ def run_file_shred(file_path, passes=3):
         return
 
     shredder = FileShredder(file_path)
-    with console.status("[bold red]Shredding file securely (DoD 5220.22-M)...", spinner="dots"):
+    with console.status("[bold red]Shredding file (best-effort overwrite passes)...", spinner="dots"):
         res = shredder.shred(passes=passes)
 
     if res["success"]:
@@ -431,9 +431,9 @@ def main():
     parser_email.add_argument("--report", help="Write the HTML forensic report to this path")
 
     # Subcommand 4: Secure Shredder
-    parser_shred = subparsers.add_parser("shred", help="Securely shred a file using DoD 5220.22-M standards")
+    parser_shred = subparsers.add_parser("shred", help="Best-effort overwrite and delete a file")
     parser_shred.add_argument("path", help="Path to the file to be wiped")
-    parser_shred.add_argument("--passes", type=int, default=3, help="Number of overwrite passes (default: 3)")
+    parser_shred.add_argument("--passes", type=int, default=3, help="Positive number of overwrite passes (default: 3)")
     
     # Subcommand 4: Domain Auditor
     parser_dom = subparsers.add_parser("domain", help="Audit network records, WHOIS databases, and SSL certificates")

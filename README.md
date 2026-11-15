@@ -18,7 +18,7 @@
 - **🔍 Image Analysis (`image` command):** Audits EXIF data, extracts GPS coordinates, performs Error Level Analysis (ELA) to locate pixel manipulations, and checks for spoofed formats or hidden malware payloads.
 - **📞 Phone & Email OSINT (`osint` command):** Checks phone number carriers and email MX records.
 - **🛡️ Email Threat Triage (`email` command):** Performs read-only email-header forensics, authentication checks, URL and attachment indicators, relay-path reconstruction, origin candidates, explainable risk scoring, SHA-256 evidence hashing, and HTML reporting.
-- **🗑️ Forensic File Shredder (`shred` command):** Overwrites targets using DoD 5220.22-M military standards to prevent any forensic lab recovery.
+- **🗑️ File Shredder (`shred` command):** Performs best-effort overwrite passes before deleting a file. This is not a certified sanitization method and cannot guarantee recovery prevention on SSDs, copy-on-write filesystems, snapshots, or backups.
 - **🌐 Network Recon (`domain` command):** WHOIS socket queries, active DNS record audits, and SSL certificate health checks.
 - **🔑 Cryptography (`crypto` command):** Classifies hash formats and audits password strength entropy.
 
@@ -69,7 +69,7 @@ python aegiseye.py email evidence/suspicious_email.eml
 # Print the complete structured result as JSON
 python aegiseye.py email evidence/suspicious_email.eml --json
 
-# Securely wipe a file (5 passes)
+# Best-effort overwrite and delete (5 passes)
 python aegiseye.py shred secret.txt --passes 5
 ```
 
@@ -122,7 +122,7 @@ AegisEye is designed to audit and triage systems during security incidents. To p
 1. **Strictly Read-Only Analysis:** The email parser, email-header triage, image ELA, EXIF parser, and certificate audits do not write to or alter the target evidence.
 2. **Evidence Hashing:** Email analysis records a SHA-256 hash of the raw input so downstream workflows can verify which evidence was analyzed.
 3. **No Single-Signal Attribution:** A relay IP is reported as an origin candidate, not as proof of the sender’s location or identity. Add approved IP/domain intelligence before making a location or attribution assessment.
-4. **DoD-Standard Shredding:** The file shredder uses multiple overwrite passes to erase files permanently. Wiped files cannot be recovered by standard forensic tools; use shredding only when permanent disposal is explicitly intended.
+4. **Best-effort File Deletion:** The shredder attempts multiple overwrite passes before deleting the file. It is not DoD-certified and cannot ensure erasure on SSDs, copy-on-write filesystems, snapshots, backups, or other storage that remaps or preserves data. Do not rely on it as a guaranteed sanitization method; use only when permanent deletion is explicitly intended.
 5. **Execution Sandbox:** When integrating with agentic incident-response frameworks, configure local execution block policies to verify destructive actions.
 
 ---
