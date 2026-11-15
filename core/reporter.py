@@ -1,10 +1,31 @@
 import os
 from datetime import datetime
+from html import escape
+from pathlib import Path
 
 class ForensicReporter:
     def __init__(self, target_name):
         self.target_name = target_name
         self.timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    @staticmethod
+    def _esc(value):
+        return escape(str(value if value is not None else ""), quote=True)
+
+    @staticmethod
+    def _file_uri(path):
+        return escape(Path(path).resolve().as_uri(), quote=True)
+
+    @staticmethod
+    def _map_url(gps_data):
+        try:
+            latitude = float(gps_data["latitude"])
+            longitude = float(gps_data["longitude"])
+        except (KeyError, TypeError, ValueError):
+            return "#"
+        if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+            return "#"
+        return f"https://www.google.com/maps/search/?api=1&query={latitude},{longitude}"
 
     def generate(self, data, output_path="aegiseye_report.html"):
         """Generate a premium, responsive HTML report showcasing the forensic results."""
@@ -18,16 +39,16 @@ class ForensicReporter:
         stego_data = data.get("stego", {})
         if stego_data and "findings" in stego_data:
             for f in stego_data["findings"]:
-                sev = f["severity"].lower()
+                sev = str(f["severity"]).lower()
                 if sev == "critical":
                     critical_count += 1
                 else:
                     warning_count += 1
                     
                 stego_findings_html += f"""
-                <div class="alert-item alert-{sev}">
-                    <strong>[{f['severity'].upper()}] {f['type']}:</strong> {f['description']}
-                    <p class="remediation-text">💡 {f['remediation']}</p>
+                <div class="alert-item alert-{self._esc(sev)}">
+                    <strong>[{self._esc(f['severity']).upper()}] {self._esc(f['type'])}:</strong> {self._esc(f['description'])}
+                    <p class="remediation-text">💡 {self._esc(f['remediation'])}</p>
                 </div>
                 """
         else:
@@ -46,7 +67,7 @@ class ForensicReporter:
             gps_data = exif_data.get("gps")
             exif_html += '<table class="data-table"><thead><tr><th>Property</th><th>Value</th></tr></thead><tbody>'
             for key, val in exif_data["exif"].items():
-                exif_html += f"<tr><td><strong>{key}</strong></td><td><code>{val}</code></td></tr>"
+                exif_html += f"<tr><td><strong>{self._esc(key)}</strong></td><td><code>{self._esc(val)}</code></td></tr>"
             exif_html += '</tbody></table>'
         else:
             exif_html = "<p class='no-data'>No EXIF metadata found in the image file.</p>"
@@ -57,9 +78,9 @@ class ForensicReporter:
             gps_html += f"""
             <div class="gps-card">
                 <h4>📍 GPS Location Found</h4>
-                <p><strong>Latitude:</strong> {gps_data['latitude']}</p>
-                <p><strong>Longitude:</strong> {gps_data['longitude']}</p>
-                <a href="{gps_data['map_link']}" target="_blank" class="btn">View on Google Maps</a>
+                <p><strong>Latitude:</strong> {self._esc(gps_data['latitude'])}</p>
+                <p><strong>Longitude:</strong> {self._esc(gps_data['longitude'])}</p>
+                <a href="{self._esc(self._map_url(gps_data))}" target="_blank" rel="noopener noreferrer" class="btn">View on Google Maps</a>
             </div>
             """
 
@@ -71,15 +92,15 @@ class ForensicReporter:
             <div class="ela-grid">
                 <div class="ela-image-box">
                     <h5>Original Image</h5>
-                    <img src="file://{os.path.abspath(self.target_name)}" alt="Original" class="forensic-image" />
+                    <img src="{self._file_uri(self.target_name)}" alt="Original" class="forensic-image" />
                 </div>
                 <div class="ela-image-box">
                     <h5>ELA Heatmap</h5>
-                    <img src="file://{ela_data['heatmap_path']}" alt="ELA Heatmap" class="forensic-image" />
+                    <img src="{self._file_uri(ela_data['heatmap_path'])}" alt="ELA Heatmap" class="forensic-image" />
                 </div>
             </div>
             <div class="ela-explanation">
-                <p><strong>Quality Tested:</strong> {ela_data['quality_tested']}% | <strong>Scale Factor:</strong> {round(ela_data['scale_factor_applied'], 2)}x</p>
+                <p><strong>Quality Tested:</strong> {self._esc(ela_data['quality_tested'])}% | <strong>Scale Factor:</strong> {self._esc(round(ela_data['scale_factor_applied'], 2))}x</p>
                 <p class="explanation-text">💡 <strong>How to read ELA:</strong> Brighter pixels represent mismatched compression rates. If a specific section (like a face or text) appears significantly brighter than surrounding areas of similar texture, it indicates potential tampering or splicing.</p>
             </div>
             """
@@ -93,15 +114,15 @@ class ForensicReporter:
             <div class="channels-grid">
                 <div class="channel-box">
                     <h5>Red Channel</h5>
-                    <img src="file://{channels['red']}" alt="Red Channel" class="forensic-image" />
+                    <img src="{self._file_uri(channels['red'])}" alt="Red Channel" class="forensic-image" />
                 </div>
                 <div class="channel-box">
                     <h5>Green Channel</h5>
-                    <img src="file://{channels['green']}" alt="Green Channel" class="forensic-image" />
+                    <img src="{self._file_uri(channels['green'])}" alt="Green Channel" class="forensic-image" />
                 </div>
                 <div class="channel-box">
                     <h5>Blue Channel</h5>
-                    <img src="file://{channels['blue']}" alt="Blue Channel" class="forensic-image" />
+                    <img src="{self._file_uri(channels['blue'])}" alt="Blue Channel" class="forensic-image" />
                 </div>
             </div>
             """
@@ -112,7 +133,7 @@ class ForensicReporter:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AegisEye Forensics Report - {os.path.basename(self.target_name)}</title>
+    <title>AegisEye Forensics Report - {self._esc(os.path.basename(self.target_name))}</title>
     <style>
         :root {{
             --bg-color: #080c14;
@@ -365,7 +386,7 @@ class ForensicReporter:
             <div class="scan-meta">
                 <div class="meta-card">
                     <h5>File Analyzed</h5>
-                    <p>{os.path.basename(self.target_name)}</p>
+                    <p>{self._esc(os.path.basename(self.target_name))}</p>
                 </div>
                 <div class="meta-card">
                     <h5>Analysis Date</h5>
@@ -373,11 +394,11 @@ class ForensicReporter:
                 </div>
                 <div class="meta-card">
                     <h5>Format Detect</h5>
-                    <p>{file_meta.get('format', 'Unknown')}</p>
+                    <p>{self._esc(file_meta.get('format', 'Unknown'))}</p>
                 </div>
                 <div class="meta-card">
                     <h5>Image Size</h5>
-                    <p>{file_meta.get('size', 'Unknown')}</p>
+                    <p>{self._esc(file_meta.get('size', 'Unknown'))}</p>
                 </div>
             </div>
         </header>
@@ -390,9 +411,9 @@ class ForensicReporter:
                     <tr><th>Algorithm</th><th>Hash Value</th></tr>
                 </thead>
                 <tbody>
-                    <tr><td><strong>MD5</strong></td><td><code>{hashes.get('md5', '')}</code></td></tr>
-                    <tr><td><strong>SHA-1</strong></td><td><code>{hashes.get('sha1', '')}</code></td></tr>
-                    <tr><td><strong>SHA-256</strong></td><td><code>{hashes.get('sha256', '')}</code></td></tr>
+                    <tr><td><strong>MD5</strong></td><td><code>{self._esc(hashes.get('md5', ''))}</code></td></tr>
+                    <tr><td><strong>SHA-1</strong></td><td><code>{self._esc(hashes.get('sha1', ''))}</code></td></tr>
+                    <tr><td><strong>SHA-256</strong></td><td><code>{self._esc(hashes.get('sha256', ''))}</code></td></tr>
                 </tbody>
             </table>
         </section>
