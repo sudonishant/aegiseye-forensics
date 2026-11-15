@@ -7,9 +7,12 @@ class FileShredder:
         self.file_path = file_path
 
     def shred(self, passes=3):
-        """Securely overwrite and delete the file to prevent forensic recovery."""
+        """Best-effort overwrite the file, then rename and delete it."""
         if not os.path.exists(self.file_path):
             return {"success": False, "error": "File does not exist."}
+
+        if not isinstance(passes, int) or isinstance(passes, bool) or passes < 1:
+            return {"success": False, "error": "Passes must be a positive integer."}
 
         if not os.path.isfile(self.file_path):
             return {"success": False, "error": "Path is not a regular file."}
@@ -17,8 +20,9 @@ class FileShredder:
         try:
             file_size = os.path.getsize(self.file_path)
             
-            # 1. Overwrite passes
-            with open(self.file_path, "ba+", buffering=0) as f:
+            # 1. Overwrite passes. Append mode ignores seeks for writes, so use
+            # read/write mode to replace the original bytes rather than append.
+            with open(self.file_path, "r+b", buffering=0) as f:
                 for p in range(1, passes + 1):
                     f.seek(0)
                     # Write random bytes in chunks

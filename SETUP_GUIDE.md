@@ -112,4 +112,4 @@ The HTML report is written beside the input file by default using the suffix `_a
 
 ## 5. Evidence-Safety Notes
 
-The email analyzer is read-only and never modifies the input message. Keep the original `.eml` and the generated SHA-256 hash together. The secure-shredder command is irreversible; do not run it on original evidence unless permanent disposal is explicitly authorized.
+The email analyzer is read-only and never modifies the input message. Keep the original `.eml` and the generated SHA-256 hash together. The shredder performs best-effort overwrite passes followed by deletion; it is irreversible but is not a certified sanitization method and cannot guarantee erasure on SSDs, copy-on-write filesystems, snapshots, or backups. Do not run it on original evidence unless permanent disposal is explicitly authorized.
