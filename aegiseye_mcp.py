@@ -2,7 +2,6 @@
 import sys
 import json
 import os
-import traceback
 import hashlib
 
 # Add current directory to path so core modules can be imported
@@ -77,7 +76,7 @@ def tool_analyze_image(arguments):
 
         return results
     except Exception as e:
-        log(f"Error in analyze_image: {traceback.format_exc()}")
+        log(f"Error in analyze_image ({type(e).__name__})")
         return {"error": str(e)}
 
 def tool_analyze_email_threat(arguments):
@@ -103,7 +102,7 @@ def tool_analyze_email_threat(arguments):
             results["report_path"] = EmailThreatReporter(source_name).generate(results, output_path=report_path)
         return results
     except Exception as e:
-        log(f"Error in analyze_email_threat: {traceback.format_exc()}")
+        log(f"Error in analyze_email_threat ({type(e).__name__})")
         return {"error": str(e)}
 
 
@@ -313,7 +312,7 @@ def main():
                             }
                         }
                     except Exception as handler_err:
-                        log(f"Handler error: {str(handler_err)}")
+                        log(f"Tool call failed: {tool_name} ({type(handler_err).__name__})")
                         response = {
                             "jsonrpc": "2.0",
                             "id": req_id,
@@ -350,8 +349,7 @@ def main():
                     sys.stdout.flush()
                     
         except Exception as e:
-            log(f"Error handling request: {str(e)}")
-            log(traceback.format_exc())
+            log(f"Error handling request ({type(e).__name__})")
 
 if __name__ == "__main__":
     main()

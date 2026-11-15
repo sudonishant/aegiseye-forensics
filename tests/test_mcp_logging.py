@@ -66,6 +66,31 @@ class McpLoggingTests(unittest.TestCase):
         self.assertNotIn("synthetic-password-only", stderr.getvalue())
         self.assertNotIn("Subject: synthetic fixture only", stderr.getvalue())
 
+    def test_exception_text_is_not_written_to_stderr(self):
+        module = load_mcp_module_with_stubbed_core()
+        sensitive_text = "synthetic-sensitive-exception-text"
+
+        def failing_handler(_arguments):
+            raise ValueError(sensitive_text)
+
+        module.TOOLS = {"crypto_hash_analysis": {"handler": failing_handler}}
+        request = {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "tools/call",
+            "params": {"name": "crypto_hash_analysis", "arguments": {}},
+        }
+        stderr = io.StringIO()
+        stdout = io.StringIO()
+
+        with patch("sys.stdin", io.StringIO(json.dumps(request) + "\n")), patch(
+            "sys.stderr", stderr
+        ), patch("sys.stdout", stdout):
+            module.main()
+
+        self.assertIn("Tool call failed: crypto_hash_analysis (ValueError)", stderr.getvalue())
+        self.assertNotIn(sensitive_text, stderr.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()
